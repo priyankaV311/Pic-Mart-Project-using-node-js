@@ -1,7 +1,10 @@
-
 const User = require('../Model/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const {
+    ACCESS_TOKEN_PRIVATE_KEY,
+    REFRESH_TOKEN_PRIVATE_KEY,
+} = require('../config');
 
 const signupController = async (req, res) => {
     try {
@@ -27,12 +30,10 @@ const signupController = async (req, res) => {
         return res.status(201).json({
             user: newUser,
         });
-
-
     } catch (err) {
         return res.status(500).send(err.message);
     }
-}
+};
 
 const loginController = async (req, res) => {
     try {
@@ -56,29 +57,60 @@ const loginController = async (req, res) => {
 
         const accessToken = await generateAccessToken({
             _id: user._id,
-            email: user.email,
         });
 
-
+        const refreshToken = await generateRefreshToken({
+            _id: user._id,
+        });
 
         return res.json({
             accessToken: accessToken,
+            refreshToken,
         });
     } catch (err) {
         return res.status(500).send(err.message);
     }
 };
 
+const refreshAccessTokenController = async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
 
+        if (!refreshToken) {
+            return res.status(403).send('Refresh token is required');
+        }
+
+        const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_PRIVATE_KEY);
+
+        const _id = decoded._id;
+        const accessToken = await generateAccessToken({ _id });    
+
+        return res.status(201).json({ accessToken });
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
+};
+
+//internal functions
 const generateAccessToken = async (data) => {
     try {
-        const token = jwt.sign(data, 'randomString', {
+        const token = jwt.sign(data, ACCESS_TOKEN_PRIVATE_KEY, {
             expiresIn: '60s',
         });
 
-
-
         return token;
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
+};
+
+const generateRefreshToken = (data) => {
+    try {
+        const refreshToken = jwt.sign(data, REFRESH_TOKEN_PRIVATE_KEY, {
+            expiresIn: '1y',
+        });
+
+        return refreshToken;
     } catch (err) {
         return res.status(500).send(err.message);
     }
@@ -87,4 +119,5 @@ const generateAccessToken = async (data) => {
 module.exports = {
     signupController,
     loginController,
+    refreshAccessTokenController,
 };
