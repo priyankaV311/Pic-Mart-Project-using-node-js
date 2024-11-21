@@ -1,8 +1,8 @@
 const { getAllPostsController } = require('../../controllar/post.controller');
-const requireUser = require('../../Middleware/m1');
+const requireUser = require('../../Middleware/requireUser');
 
 const router = require('express').Router();
 
-router.post('/', requireUser, getAllPostsController);
+router.get('/all', requireUser, getAllPostsController);
 
 module.exports = router;
